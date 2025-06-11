@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Notizie Home</title>
+  <style>
+    /* ─── GRID: sempre 2 colonne, gap 0 ─── */
+    #news {
+      display: grid;
+      gap: 0;
+      grid-template-columns: repeat(2,1fr);
+      grid-template-areas:
+        "a a"
+        "b c";
+      width: 100%;
+    }
+    .news-item:nth-child(1){ grid-area: a; }
+    .news-item:nth-child(2){ grid-area: b; }
+    .news-item:nth-child(3){ grid-area: c; }
+
+    /* ─── WRAPPER 16:9 ─── */
+    .image-wrapper {
+      position: relative;
+      padding-top: 56.25%; /* 9/16 */
+      overflow: hidden;
+    }
+    .image-wrapper img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    /* ─── GRADIENTE NERO ─── */
+    .image-wrapper .overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        rgba(0,0,0,1)   0%,
+        rgba(0,0,0,0)  20%,
+        rgba(0,0,0,0)  80%,
+        rgba(0,0,0,1) 100%
+      );
+    }
+
+    /* ─── TESTO IN OVERLAY ─── */
+    .text {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 12px;
+      color: #fff;
+      background: none;
+    }
+    .text .date {
+      font-size: 1rem;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      opacity: 0.9;
+    }
+    .text .desc {
+      font-size: 1.25rem;
+      line-height: 1.3;
+    }
+
+    /* ─── MOBILE ≤600px: testo overlay più piccolo ─── */
+    @media (max-width: 600px) {
+      .text {
+        padding: 6px;
+      }
+      .text .date {
+        font-size: 0.75rem;
+        margin-bottom: 4px;
+      }
+      .text .desc {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="news"></div>
+
+  <script>
+    const SHEET_KEY = '1dbPQDdEyvjG0EJe0SeLUrrjDDyJnuuKzqb0T_Wg5Qbk';
+    const IMG_BASE  = 'https://francescacaleandro.github.io/table1/images/';
+    const URL = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?sheet=NOTIZIEHOME&tqx=out:json`;
+
+    function parseGViz(text) {
+      return JSON.parse(text.match(/setResponse\(([\s\S]+)\)/)[1]);
+    }
+    function formatDate(cell) {
+      let raw = (cell.f || cell.v || '').toString();
+      if (raw.includes('/')) return raw;
+      const parts = raw.split(' ');
+      if (parts.length === 3) {
+        const [d, m, y] = parts;
+        const map = {
+          gennaio:'01', febbraio:'02', marzo:'03',
+          aprile:'04', maggio:'05', giugno:'06',
+          luglio:'07', agosto:'08', settembre:'09',
+          ottobre:'10', novembre:'11', dicembre:'12'
+        };
+        return d.padStart(2,'0') + '/' + (map[m.toLowerCase()]||'00') + '/' + y;
+      }
+      return raw;
+    }
+
+    fetch(URL)
+      .then(r => r.text())
+      .then(txt => {
+        const rows = parseGViz(txt).table.rows.slice(0,3);
+        const news = document.getElementById('news');
+        news.innerHTML = '';
+        rows.forEach(row => {
+          const [imgC, dateC, descC] = row.c;
+          const date = formatDate(dateC||{});
+          const item = document.createElement('div');
+          item.className = 'news-item';
+          item.innerHTML = `
+            <div class="image-wrapper">
+              <img src="${IMG_BASE + encodeURIComponent(imgC.v)}" alt="${descC.v}">
+              <div class="overlay"></div>
+              <div class="text">
+                <div class="date">${date}</div>
+                <div class="desc">${descC.v}</div>
+              </div>
+            </div>
+          `;
+          news.appendChild(item);
+        });
+      })
+      .catch(err => {
+        console.error('Errore:', err);
+        document.getElementById('news').textContent =
+          '❌ Impossibile caricare le notizie. Controlla la console.';
+      });
+  </script>
+</body>
+</html>
