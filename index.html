@@ -5,24 +5,36 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Notizie Home</title>
   <style>
+    /* ─── VARIABILE PER ASPETT RATIO ─── */
+    :root {
+      --image-aspect: 56.25%;    /* default 16:9 (9/16*100) */
+    }
+    /* se vuoi un altro ratio su mobile: cambia il valore qui */
+    @media (max-width: 600px) {
+      :root {
+        --image-aspect: 80%;     /* es. 80% della larghezza viewport */
+      }
+    }
+
     /* ─── GRID: sempre 2 colonne, gap 0 ─── */
     #news {
       display: grid;
       gap: 0;
-      grid-template-columns: repeat(2,1fr);
+      grid-template-columns: repeat(2, 1fr);
       grid-template-areas:
         "a a"
         "b c";
       width: 100%;
+      margin: 0; padding: 0;
     }
     .news-item:nth-child(1){ grid-area: a; }
     .news-item:nth-child(2){ grid-area: b; }
     .news-item:nth-child(3){ grid-area: c; }
 
-    /* ─── WRAPPER 16:9 ─── */
+    /* ─── WRAPPER USANDO LA VARIABILE ─── */
     .image-wrapper {
       position: relative;
-      padding-top: 56.25%; /* 9/16 */
+      padding-top: var(--image-aspect); /* usa la variabile invece di 56.25% fisso */
       overflow: hidden;
     }
     .image-wrapper img {
@@ -30,6 +42,7 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       object-fit: cover;
+      display: block;
     }
 
     /* ─── GRADIENTE NERO ─── */
@@ -53,6 +66,7 @@
       padding: 12px;
       color: #fff;
       background: none;
+      box-sizing: border-box;
     }
     .text .date {
       font-size: 1rem;
@@ -86,13 +100,13 @@
   <script>
     const SHEET_KEY = '1dbPQDdEyvjG0EJe0SeLUrrjDDyJnuuKzqb0T_Wg5Qbk';
     const IMG_BASE  = 'https://francescacaleandro.github.io/table1/images/';
-    const URL = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?sheet=NOTIZIEHOME&tqx=out:json`;
+    const URL       = `https://docs.google.com/spreadsheets/d/${SHEET_KEY}/gviz/tq?sheet=NOTIZIEHOME&tqx=out:json`;
 
     function parseGViz(text) {
       return JSON.parse(text.match(/setResponse\(([\s\S]+)\)/)[1]);
     }
     function formatDate(cell) {
-      let raw = (cell.f || cell.v || '').toString();
+      let raw = (cell.f || cell.v || '').toString().trim();
       if (raw.includes('/')) return raw;
       const parts = raw.split(' ');
       if (parts.length === 3) {
@@ -103,7 +117,8 @@
           luglio:'07', agosto:'08', settembre:'09',
           ottobre:'10', novembre:'11', dicembre:'12'
         };
-        return d.padStart(2,'0') + '/' + (map[m.toLowerCase()]||'00') + '/' + y;
+        const mm = map[m.toLowerCase()] || '00';
+        return d.padStart(2,'0') + '/' + mm + '/' + y;
       }
       return raw;
     }
@@ -116,7 +131,7 @@
         news.innerHTML = '';
         rows.forEach(row => {
           const [imgC, dateC, descC] = row.c;
-          const date = formatDate(dateC||{});
+          const date = formatDate(dateC || {});
           const item = document.createElement('div');
           item.className = 'news-item';
           item.innerHTML = `
